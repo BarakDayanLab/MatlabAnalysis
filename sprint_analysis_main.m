@@ -4,28 +4,28 @@ total_duration = 8e6;
 max_tt = 7.5e6;
 min_tt = 0.5e6;%0e6;
 
-%Tal
 router_exp = 'T'; % do not change - means 1click experiment
 
+QRAMfolder = '\\isi.storwis.weizmann.ac.il\Labs\baraklab\Lab_2023\Experiment_results\QRAM\Analysis\';
 date = '20240118';
 
 % date2 = '20240109';
 
-load([date,'\time_atoms.mat'])
-load([date,'\time_noatoms.mat'])
+load([QRAMfolder,date,'\time_atoms.mat'])
+load([QRAMfolder,date,'\time_noatoms.mat'])
 % load([date,'\seq_coh_check.mat'])
 
 
 folder_atom = [date,'\with_atoms\'];
 folder_noatom = [date,'\no_atoms\'];
 
-t_atoms = time_atoms(9,:) % eventually need to write function that adds different runs
-t_noatoms = time_noatoms(9,:)
+t_atoms = time_atoms(3,:) % eventually need to write function that adds different runs
+t_noatoms = time_noatoms(3,:)
 
-load([folder_atom,'\tt_',t_atoms,'.mat'])
-load([folder_noatom,'\tt_',t_noatoms,'.mat'])
+load([QRAMfolder,folder_atom,'\tt_',t_atoms,'.mat'])
+load([QRAMfolder,folder_noatom,'\tt_',t_noatoms,'.mat'])
 
-load([folder_atom,'\seq_',t_atoms,'.mat'])
+load([QRAMfolder,folder_atom,'\seq_',t_atoms,'.mat'])
 
 % find experiment sequence
 [ss,ii] = sort([peaks_N,peaks_S]);
@@ -307,7 +307,7 @@ if txt == 'N'
 end
 axis([min(edges) max(edges) 0 1.1*max(histogram_S)])
 
-saveas(fig_S_seq, [date,'\',t_atoms,'_',t_noatoms,'\fig_S_seq.fig']);
+saveas(fig_S_seq, [QRAMfolder,date,'\',t_atoms,'_',t_noatoms,'\fig_S_seq.fig']);
 
 % no atoms
 tt_SS_refl_noatom = cell(1,length(tt_SS_noatom));
@@ -355,7 +355,7 @@ if txt == 'N'
 end
 axis([min(edges) max(edges) 0 1.1*max(histogram_N)])
 
-saveas(fig_N_seq, [date,'\',t_atoms,'_',t_noatoms,'\fig_N_seq.fig']);
+saveas(fig_N_seq, [QRAMfolder,date,'\',t_atoms,'_',t_noatoms,'\fig_N_seq.fig']);
 
 % no atoms
 tt_NN_refl_noatom = cell(1,length(tt_NN_noatom));
@@ -566,6 +566,13 @@ transits_tt = cell(length(dt),length(clicks));
 transit_duration = cell(length(dt),length(clicks));
 transits_cyc_ind = cell(length(dt),length(clicks));
 
+num_transits_noatom = zeros(length(dt),length(clicks));
+num_transits_false_noatom = zeros(length(dt),length(clicks));
+SNR_noatom = zeros(length(dt),length(clicks));
+transits_tt_noatom = cell(length(dt),length(clicks));
+transit_duration_noatom = cell(length(dt),length(clicks));
+transits_cyc_ind_noatom = cell(length(dt),length(clicks));
+
 switch router_exp
     case 'R'
         control_T = zeros(length(dt),length(clicks));
@@ -583,6 +590,12 @@ switch router_exp
         target_T = zeros(length(dt),length(clicks));
         target_B = zeros(length(dt),length(clicks));
         target_D = zeros(length(dt),length(clicks));
+
+        target_R_noatom = zeros(length(dt),length(clicks));
+        target_T_noatom = zeros(length(dt),length(clicks));
+        target_B_noatom = zeros(length(dt),length(clicks));
+        target_D_noatom = zeros(length(dt),length(clicks));
+
     case 'Bell'
         fprintf('write something')
 end
@@ -593,21 +606,36 @@ n_transit_bin = cell(length(dt),length(clicks));
 b_transit_bin = cell(length(dt),length(clicks));
 d_transit_bin = cell(length(dt),length(clicks));
 
+s1_transit_bin_noatom = cell(length(dt),length(clicks));
+s2_transit_bin_noatom = cell(length(dt),length(clicks));
+n_transit_bin_noatom = cell(length(dt),length(clicks));
+b_transit_bin_noatom = cell(length(dt),length(clicks));
+d_transit_bin_noatom = cell(length(dt),length(clicks));
+
 ind_transits_last_det_refl = cell(length(dt),length(clicks));
 ind_transits_data_pt = cell(length(dt),length(clicks));
 factor = length(tt_refl)/length(tt_refl_noatom);
 
+ind_transits_last_det_refl_noatom = cell(length(dt),length(clicks));
+ind_transits_data_pt_noatom = cell(length(dt),length(clicks));
+
 for n=1:length(dt)
     for m=1:length(clicks)
-    [num_transits(n,m),num_transits_false(n,m),SNR(n,m),transits_tt{n,m},transit_duration{n,m},transits_cyc_ind{n,m}] = find_transits(dt(n),clicks(m),min_transit_duration,tt_refl,tt_refl_noatom);
+    %with atoms
+    [num_transits(n,m),num_transits_false(n,m),SNR(n,m),transits_tt{n,m},transit_duration{n,m},transits_cyc_ind{n,m}] = find_transits(dt(n),clicks(m),min_transit_duration,tt_refl,tt_refl_noatom);  %CHECK CLUSTERING CONDITION!
     [s1_transit_bin{n,m},s2_transit_bin{n,m},n_transit_bin{n,m},b_transit_bin{n,m},d_transit_bin{n,m}] = bin_transits(edges_seq,sequence_duration,transits_tt{n,m},transits_cyc_ind{n,m},tt_S1,tt_S2,tt_N,tt_B,tt_D);
+    %no atoms
+    [num_transits_noatom(n,m),num_transits_false_noatom(n,m),SNR_noatom(n,m),transits_tt_noatom{n,m},transit_duration_noatom{n,m},transits_cyc_ind_noatom{n,m}] = find_transits(dt(n)+20000,clicks(m)-2,min_transit_duration,tt_refl_noatom,tt_refl_noatom);
+    [s1_transit_bin_noatom{n,m},s2_transit_bin_noatom{n,m},n_transit_bin_noatom{n,m},b_transit_bin_noatom{n,m},d_transit_bin_noatom{n,m}] = bin_transits(edges_seq,sequence_duration,transits_tt_noatom{n,m},transits_cyc_ind_noatom{n,m},tt_S1_noatom,tt_S2_noatom,tt_N_noatom,tt_B_noatom,tt_D_noatom); %CHECK CLUSTERING CONDITION!
     
     switch router_exp
         case 'R'
             [ind_transits_data_pt{n,m},ind_transits_last_det_refl{n,m},control_T(n,m),control_R(n,m),target_T_cT(n,m),target_R_cT(n,m),target_T_cR(n,m),target_R_cR(n,m),B_cR(n,m),D_cR(n,m),B(n,m),D(n,m)] = get_qrouter_R(experiment,s1_transit_bin{n,m},s2_transit_bin{n,m},n_transit_bin{n,m},b_transit_bin{n,m},d_transit_bin{n,m});
         case 'T'
+            %with atom
             [ind_transits_data_pt{n,m},ind_transits_last_det_refl{n,m},target_T(n,m),target_R(n,m),target_B(n,m),target_D(n,m)] = get_qrouter_T(experiment,s1_transit_bin{n,m},s2_transit_bin{n,m},n_transit_bin{n,m},b_transit_bin{n,m},d_transit_bin{n,m});
-            % [ind_transits_data_pt{n,m},ind_transits_last_det_refl{n,m},target_T(n,m),target_R(n,m),target_B(n,m),target_D(n,m)] = get_qrouter_T(experiment,s1_transit_bin{n,m},s2_transit_bin{n,m},n_transit_bin{n,m},b_transit_bin{n,m},d_transit_bin{n,m});
+            %no atoms
+            [ind_transits_data_pt_noatom{n,m},ind_transits_last_det_refl_noatom{n,m},target_T_noatom(n,m),target_R_noatom(n,m),target_B_noatom(n,m),target_D_noatom(n,m)] = get_qrouter_T(experiment,s1_transit_bin_noatom{n,m},s2_transit_bin_noatom{n,m},n_transit_bin_noatom{n,m},b_transit_bin_noatom{n,m},d_transit_bin_noatom{n,m});
         case 'Bell'
 %             fprintf('write function')
     end
