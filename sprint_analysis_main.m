@@ -4,7 +4,7 @@ total_duration = 8e6;
 max_tt = 7.5e6;
 min_tt = 0.5e6;%0e6;
 
-
+%Tal
 router_exp = 'T'; % do not change - means 1click experiment
 
 date = '20240118';
